@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 // Auth pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import AdminLogin from './pages/auth/AdminLogin';
 
 // Member pages
 import MemberDashboard from './pages/member/Dashboard';
@@ -61,7 +62,7 @@ export default function App() {
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/admin/login" element={<PublicRoute><Login isAdmin /></PublicRoute>} />
+        <Route path="/admin/login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
 
         {/* Member routes */}
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['member']}><MemberDashboard /></ProtectedRoute>} />
