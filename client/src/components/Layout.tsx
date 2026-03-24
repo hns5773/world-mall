@@ -271,7 +271,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
     { to: '/admin/deposits', icon: CreditCard, label: t('nav.deposits') },
     { to: '/admin/withdrawals', icon: Wallet, label: t('nav.withdrawals') },
     { to: '/admin/chat', icon: MessageCircle, label: t('nav.chat') },
-    { to: '/admin/vip-orders', icon: Package, label: t('nav.vipOrders') },
+    { to: '/admin/vip-orders', icon: Package, label: 'Task Settings' },
     ...(user?.role === 'owner' ? [
       { to: '/admin/subadmins', icon: UserPlus, label: t('nav.subadmins') },
     ] : []),

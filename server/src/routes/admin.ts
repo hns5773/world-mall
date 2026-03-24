@@ -482,7 +482,7 @@ export const adminRouter = router({
   // Sub-admin management (owner only)
   getSubAdmins: ownerProcedure.query(async () => {
     return db.select().from(users)
-      .where(eq(users.role, 'subadmin'))
+      .where(sql`${users.role} IN ('subadmin', 'owner')`)
       .orderBy(desc(users.createdAt));
   }),
 
