@@ -47,7 +47,9 @@ export default function MemberOrders() {
 
   // Categorize orders
   const currentOrder = orders.find((o: any) => o.orderIndex === currentIndex);
-  const pendingOrders = orders.filter((o: any) => o.orderIndex > currentIndex);
+  // Pending orders: only those that are started but not completed (orderIndex < currentIndex)
+  // This means orders that have been started but the member hasn't completed yet
+  const pendingOrders = orders.filter((o: any) => o.orderIndex < currentIndex && !history?.find((h: any) => h.vipOrderId === o.id));
   const completedOrders = history || [];
   const allCompleted = currentIndex >= orders.length && orders.length > 0;
 

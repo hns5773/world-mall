@@ -5,7 +5,7 @@ import { trpc } from '../../utils/trpc';
 import { useAuthStore } from '../../stores/authStore';
 import { languages } from '../../i18n';
 import toast from 'react-hot-toast';
-import { User, Globe, Lock, LogOut, ChevronRight, Copy, Check, Users, MessageCircle, FileText, Camera, X, Shield } from 'lucide-react';
+import { User, Globe, Lock, LogOut, ChevronRight, Copy, Check, Users, MessageCircle, FileText, Camera, X, Shield, Bell, HelpCircle } from 'lucide-react';
 
 export default function MemberSettings() {
   const { t, i18n } = useTranslation();
@@ -188,6 +188,45 @@ export default function MemberSettings() {
                 <MessageCircle className="w-4 h-4 text-orange-500" />
               </div>
               <span className="text-sm font-medium text-gray-900">Service</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          {/* Notifications */}
+          <button 
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-gray-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Bell className="w-4 h-4 text-blue-500" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">Notifications</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          {/* Account Verification */}
+          <button 
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-gray-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                <Shield className="w-4 h-4 text-green-500" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">Account Verification</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          {/* Help & FAQ */}
+          <button 
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-gray-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center">
+                <HelpCircle className="w-4 h-4 text-yellow-500" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">Help & FAQ</span>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400" />
           </button>

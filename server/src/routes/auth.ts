@@ -164,6 +164,7 @@ export const authRouter = router({
     }
     return {
       id: user.id,
+      uid: user.id,
       username: user.username,
       role: user.role,
       balance: user.balance,
@@ -187,6 +188,7 @@ export const authRouter = router({
       phone: z.string().optional(),
       email: z.string().email().optional(),
       language: z.string().optional(),
+      avatar: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       await db.update(users).set({
