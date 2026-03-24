@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { trpc } from '../../utils/trpc';
 import { useAuthStore } from '../../stores/authStore';
-import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, TrendingUp, Users, Globe } from 'lucide-react';
+import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, TrendingUp, Crown, Users } from 'lucide-react';
 
 // NotificationBell inline for the header
 function HeaderNotificationBell() {
@@ -73,27 +73,27 @@ export default function MemberDashboard() {
   }
 
   const balance = data?.balance || '0.00';
-  const vipLevel = data?.vipLevel || 1;
+  const vipLevel = data?.vipLevel || 0;
   const currentOrderIndex = data?.currentOrderIndex || 0;
   const totalOrders = data?.totalOrders || 0;
   const completedOrders = data?.completedOrders || 0;
 
-  // VIP progress calculation
-  const vipRequirements: Record<number, number> = { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80 };
-  const nextVipLevel = vipLevel < 8 ? vipLevel + 1 : 8;
-  const ordersNeeded = vipRequirements[vipLevel] || 10;
-  const progressPercent = Math.min((completedOrders / ordersNeeded) * 100, 100);
+  // VIP progress: balance-based thresholds
+  const vipThresholds: Record<number, number> = { 0: 100, 1: 500, 2: 1000, 3: 5000, 4: 10000, 5: 50000, 6: 100000, 7: 500000 };
+  const nextThreshold = vipThresholds[vipLevel] || 100;
+  const balanceNum = parseFloat(balance);
+  const progressPercent = Math.min((balanceNum / nextThreshold) * 100, 100);
 
   // Combine deposits and withdrawals for activity feed
   const activities: any[] = [];
   if (deposits) {
     deposits.forEach((d: any) => {
-      activities.push({ type: 'deposit', user: user?.username, amount: d.amount, status: d.status, date: d.createdAt });
+      activities.push({ type: 'deposit', user: d.username || user?.username, amount: d.amount, status: d.status, date: d.createdAt });
     });
   }
   if (withdrawals) {
     withdrawals.forEach((w: any) => {
-      activities.push({ type: 'withdraw', user: user?.username, amount: w.amount, status: w.status, date: w.createdAt });
+      activities.push({ type: 'withdraw', user: w.username || user?.username, amount: w.amount, status: w.status, date: w.createdAt });
     });
   }
   activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -109,53 +109,58 @@ export default function MemberDashboard() {
     return `${days}d ago`;
   };
 
+  const maskUsername = (name: string) => {
+    if (!name) return 'User ***';
+    if (name.length <= 3) return `User ***${name.slice(-1)}`;
+    return `User ***${name.slice(-3)}`;
+  };
+
   // Get product images from orders for Products section
   const productList = ordersData?.orders?.slice(0, 8) || [];
 
+  // Random colors for avatar circles
+  const avatarColors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
+  const getAvatarColor = (name: string) => avatarColors[Math.abs(name?.charCodeAt(0) || 0) % avatarColors.length];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Purple Gradient Header with Logo Watermark */}
-      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8 relative overflow-hidden">
-        {/* Logo watermark background */}
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex flex-wrap items-center justify-center gap-8 p-4">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Globe key={i} className="w-12 h-12 text-white" />
-          ))}
-        </div>
-        {/* Background decoration circles */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-        
-        {/* Top row: Logo + Welcome + Bell + VIP */}
-        <div className="flex items-center justify-between mb-6 relative z-10">
+      {/* Purple Gradient Header - Clean, no watermark */}
+      <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-blue-500 px-5 pt-12 pb-8 relative overflow-hidden">
+        {/* Top row: Crown + Welcome + Bell + VIP */}
+        <div className="flex items-center justify-between mb-5 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center shadow-md">
-              <Globe className="w-5 h-5 text-white" strokeWidth={1.5} />
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Crown className="w-5 h-5 text-yellow-300" />
             </div>
             <div>
-              <p className="text-white/70 text-xs">{t('dashboard.welcome')}</p>
+              <p className="text-white/70 text-xs">Welcome</p>
               <p className="text-white font-bold text-lg">{user?.username || 'User'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <HeaderNotificationBell />
-            <div className="bg-gradient-to-r from-orange-400 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            <div className="bg-gradient-to-r from-orange-400 to-orange-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1">
+              <Crown className="w-3 h-3" />
               VIP{vipLevel}
             </div>
           </div>
         </div>
 
         {/* Balance Section */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-white/70 text-sm">{t('home.totalBalance')}</p>
-            <button onClick={() => setShowBalance(!showBalance)} className="text-white/60 hover:text-white/90">
-              {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-4 relative z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-white/70 text-sm">Total Balance</p>
+              </div>
+              <p className="text-white text-3xl font-bold tracking-tight">
+                {showBalance ? `$${balance}` : '****'}
+              </p>
+            </div>
+            <button onClick={() => setShowBalance(!showBalance)} className="text-white/60 hover:text-white/90 p-2">
+              {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
             </button>
           </div>
-          <p className="text-white text-4xl font-bold tracking-tight">
-            {showBalance ? `$${balance}` : '****'}
-          </p>
         </div>
       </div>
 
@@ -167,35 +172,35 @@ export default function MemberDashboard() {
               <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
                 <ArrowDownToLine className="w-5 h-5 text-blue-600" />
               </div>
-              <span className="text-xs text-gray-600 font-medium">{t('home.deposit')}</span>
+              <span className="text-xs text-gray-600 font-medium">Deposit</span>
             </button>
             <button onClick={() => navigate('/withdraw')} className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
                 <ArrowUpFromLine className="w-5 h-5 text-green-600" />
               </div>
-              <span className="text-xs text-gray-600 font-medium">{t('home.withdraw')}</span>
+              <span className="text-xs text-gray-600 font-medium">Withdraw</span>
             </button>
             <button onClick={() => navigate('/orders')} className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5 text-purple-600" />
               </div>
-              <span className="text-xs text-gray-600 font-medium">{t('nav.order')}</span>
+              <span className="text-xs text-gray-600 font-medium">Order</span>
             </button>
             <button onClick={() => navigate('/chat')} className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
                 <MessageCircle className="w-5 h-5 text-orange-600" />
               </div>
-              <span className="text-xs text-gray-600 font-medium">{t('chat.title')}</span>
+              <span className="text-xs text-gray-600 font-medium">Customer Service</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Products Section (LIVE with real data) */}
+      {/* Products Section */}
       <div className="px-4 mt-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gray-800 rounded-full" />
+            <div className="w-2 h-2 bg-yellow-400 rounded-full" />
             <h2 className="text-base font-bold text-gray-900">Products</h2>
           </div>
           <button onClick={() => navigate('/orders')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full">
@@ -204,10 +209,10 @@ export default function MemberDashboard() {
           </button>
         </div>
         
-        {/* Horizontal scroll product cards */}
+        {/* Horizontal scroll product cards - smaller */}
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {productList.length > 0 ? productList.map((order: any, idx: number) => (
-            <div key={idx} className="flex-shrink-0 w-32 cursor-pointer" onClick={() => navigate('/orders')}>
+            <div key={idx} className="flex-shrink-0 w-28 cursor-pointer" onClick={() => navigate('/orders')}>
               <div className="relative rounded-xl overflow-hidden aspect-square bg-gray-100 shadow-sm">
                 <img 
                   src={order.productImage} 
@@ -215,11 +220,11 @@ export default function MemberDashboard() {
                   className="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'; }}
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                  <span className="text-white text-xs font-bold">${order.price}</span>
+                <div className="absolute bottom-0 left-0 bg-gradient-to-r from-green-500 to-green-600 px-2 py-0.5 rounded-tr-lg">
+                  <span className="text-white text-[10px] font-bold">${order.price}</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 mt-1.5 truncate">{order.productName}</p>
+              <p className="text-[11px] text-gray-600 mt-1.5 truncate">{order.productName}</p>
             </div>
           )) : (
             <div className="text-sm text-gray-400 py-4">No products available</div>
@@ -227,12 +232,12 @@ export default function MemberDashboard() {
         </div>
       </div>
 
-      {/* Deposit and Withdraw Activity Feed (LIVE with real data) */}
+      {/* Deposit and Withdraw Section */}
       <div className="px-4 mt-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gray-800 rounded-full" />
-            <h2 className="text-base font-bold text-gray-900">{t('home.depositAndWithdraw')}</h2>
+            <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+            <h2 className="text-base font-bold text-gray-900">Deposit and Withdraw</h2>
           </div>
           <button onClick={() => navigate('/history')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full">
             LIVE
@@ -247,21 +252,19 @@ export default function MemberDashboard() {
             activities.slice(0, 5).map((act, idx) => (
               <div key={idx} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${act.type === 'deposit' ? 'bg-green-50' : 'bg-orange-50'}`}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${act.type === 'deposit' ? 'bg-green-50' : 'bg-orange-50'}`}>
                     {act.type === 'deposit' 
                       ? <ArrowDownToLine className="w-4 h-4 text-green-600" />
                       : <ArrowUpFromLine className="w-4 h-4 text-orange-600" />
                     }
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {act.user ? `${act.user.substring(0, 3)}***${act.user.slice(-1)}` : 'User'}
-                    </p>
-                    <p className="text-[10px] text-gray-400 capitalize">{act.type === 'deposit' ? t('home.deposit') : t('home.withdraw')}</p>
+                    <p className="text-sm font-medium text-gray-800">{maskUsername(act.user)}</p>
+                    <p className="text-[10px] text-gray-400 capitalize">{act.type === 'deposit' ? 'Deposit' : 'Withdraw'}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${act.type === 'deposit' ? 'text-green-600' : 'text-orange-600'}`}>
+                  <p className={`text-sm font-bold ${act.type === 'deposit' ? 'text-green-600' : 'text-red-500'}`}>
                     {act.type === 'deposit' ? '+' : '-'}${act.amount}
                   </p>
                   <p className="text-[10px] text-gray-400">{formatTimeAgo(act.date)}</p>
@@ -280,32 +283,37 @@ export default function MemberDashboard() {
               <TrendingUp className="w-4 h-4 text-purple-600" />
               <h3 className="text-sm font-bold text-gray-900">VIP Progress</h3>
             </div>
-            <span className="text-xs text-gray-500">
-              VIP {vipLevel} → VIP {nextVipLevel}
-            </span>
+            <div className="bg-gradient-to-r from-orange-400 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Crown className="w-3 h-3" />
+              VIP{vipLevel}
+            </div>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="text-gray-500">VIP{vipLevel}</span>
+            <span className="text-gray-500">VIP{vipLevel + 1}</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2.5 mb-2 overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">{completedOrders}/{ordersNeeded} orders completed</span>
-            <span className="text-purple-600 font-medium">{progressPercent.toFixed(0)}%</span>
+            <span className="text-gray-500">Balance: ${balanceNum.toFixed(2)}</span>
+            <span className="text-gray-500">Next: ${nextThreshold}</span>
           </div>
+          <p className="text-center text-[10px] text-gray-400 mt-1">{progressPercent.toFixed(0)}% to next level</p>
         </div>
       </div>
 
-      {/* Recently Active Section (LIVE - placeholder for real data) */}
+      {/* Recently Active Section */}
       <div className="px-4 mt-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gray-800 rounded-full" />
+            <Crown className="w-4 h-4 text-yellow-500" />
             <h2 className="text-base font-bold text-gray-900">Recently Active</h2>
           </div>
           <div className="flex items-center gap-1 text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-full">
-            <Users className="w-3 h-3" />
             LIVE
             <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
           </div>
@@ -318,22 +326,24 @@ export default function MemberDashboard() {
             activities.slice(0, 6).map((act, idx) => (
               <div key={idx} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center ${act.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'}`}>
-                    {act.type === 'deposit' 
-                      ? <ArrowDownToLine className="w-3.5 h-3.5 text-green-500" />
-                      : <ArrowUpFromLine className="w-3.5 h-3.5 text-red-500" />
-                    }
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarColor(act.user)}`}>
+                    {(act.user || 'U').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-700">{act.user ? `${act.user.substring(0, 3)}***${act.user.slice(-1)}` : 'User'}</p>
-                    <p className="text-[10px] text-gray-400 capitalize">{act.type === 'deposit' ? 'Deposit' : 'Withdraw'}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-gray-700">{maskUsername(act.user)}</p>
+                      <span className="bg-gradient-to-r from-orange-400 to-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <Crown className="w-2 h-2" />
+                        VIP{vipLevel}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400">{formatTimeAgo(act.date)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-xs font-bold ${act.type === 'deposit' ? 'text-green-600' : 'text-red-500'}`}>
-                    {act.type === 'deposit' ? '+' : '-'}${act.amount}
+                  <p className={`text-sm font-bold ${act.type === 'deposit' ? 'text-green-600' : 'text-red-500'}`}>
+                    +${act.amount}
                   </p>
-                  <p className="text-[10px] text-gray-400">{formatTimeAgo(act.date)}</p>
                 </div>
               </div>
             ))

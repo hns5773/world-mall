@@ -1,136 +1,126 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { trpc } from '../../utils/trpc';
-import { ArrowDownToLine, ArrowUpFromLine, Clock, Globe } from 'lucide-react';
+import { Clock, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+
+type TabType = 'all' | 'deposit' | 'withdraw';
 
 export default function MemberHistory() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'deposits' | 'withdrawals'>('deposits');
-  const { data: deposits, isLoading: dLoading } = trpc.member.getDeposits.useQuery();
-  const { data: withdrawals, isLoading: wLoading } = trpc.member.getWithdrawals.useQuery();
-
-  const isLoading = dLoading || wLoading;
+  const { data: deposits } = trpc.member.getDeposits.useQuery();
+  const { data: withdrawals } = trpc.member.getWithdrawals.useQuery();
+  const [activeTab, setActiveTab] = useState<TabType>('all');
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'approved': return 'bg-green-50 text-green-700';
-      case 'rejected': return 'bg-red-50 text-red-700';
-      default: return 'bg-yellow-50 text-yellow-700';
+      case 'approved': return 'text-green-600 bg-green-50';
+      case 'rejected': return 'text-red-600 bg-red-50';
+      default: return 'text-yellow-600 bg-yellow-50';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'approved': return t('history.approved');
-      case 'rejected': return t('history.rejected');
-      default: return t('history.pending');
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return 'Pending';
     }
   };
 
+  // Combine all transactions
+  const allTransactions: any[] = [];
+  if (deposits) {
+    deposits.forEach((d: any) => {
+      allTransactions.push({ type: 'deposit', amount: d.amount, status: d.status, date: d.createdAt, network: d.network });
+    });
+  }
+  if (withdrawals) {
+    withdrawals.forEach((w: any) => {
+      allTransactions.push({ type: 'withdraw', amount: w.amount, status: w.status, date: w.createdAt });
+    });
+  }
+  allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const filteredTransactions = activeTab === 'all' 
+    ? allTransactions 
+    : allTransactions.filter(tx => tx.type === activeTab);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'deposit', label: 'Deposit' },
+    { key: 'withdraw', label: 'Withdraw' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-amber-50/30">
       {/* Header */}
-      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex flex-wrap items-center justify-center gap-8 p-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Globe key={i} className="w-12 h-12 text-white" />
+      <div className="bg-white px-5 pt-10 pb-4 text-center border-b border-gray-100">
+        <h1 className="text-lg font-bold text-gray-900">Transaction History</h1>
+      </div>
+
+      {/* Pill Tabs */}
+      <div className="px-5 pt-4 bg-white">
+        <div className="flex gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                activeTab === tab.key
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
-        </div>
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <h1 className="text-white text-xl font-bold mb-4 relative z-10">{t('history.title')}</h1>
-        
-        {/* Tabs */}
-        <div className="flex bg-white/10 rounded-xl p-1">
-          <button
-            onClick={() => setActiveTab('deposits')}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-              activeTab === 'deposits' ? 'bg-white text-purple-700 shadow-sm' : 'text-white/80'
-            }`}
-          >
-            {t('history.deposits')}
-          </button>
-          <button
-            onClick={() => setActiveTab('withdrawals')}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-              activeTab === 'withdrawals' ? 'bg-white text-purple-700 shadow-sm' : 'text-white/80'
-            }`}
-          >
-            {t('history.withdrawals')}
-          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-4 -mt-2">
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+      {/* Transaction List */}
+      <div className="px-4 mt-4 pb-6">
+        {filteredTransactions.length === 0 ? (
+          <div className="bg-white/60 rounded-2xl p-12 text-center mt-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Clock className="w-8 h-8 text-gray-300" />
             </div>
-          ) : activeTab === 'deposits' ? (
-            (!deposits || deposits.length === 0) ? (
-              <div className="py-12 text-center">
-                <ArrowDownToLine className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">{t('history.noDeposits')}</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {deposits.map((d: any) => (
-                  <div key={d.id} className="flex items-center justify-between px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center">
-                        <ArrowDownToLine className="w-4 h-4 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{t('home.deposit')}</p>
-                        <p className="text-[10px] text-gray-400">
-                          {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '-'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-green-600">+${d.amount}</p>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusColor(d.status)}`}>
-                        {getStatusLabel(d.status)}
-                      </span>
-                    </div>
+            <p className="text-sm text-gray-400">No transactions yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredTransactions.map((tx, idx) => (
+              <div key={idx} className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
+                  }`}>
+                    {tx.type === 'deposit' 
+                      ? <ArrowDownToLine className="w-5 h-5 text-green-600" />
+                      : <ArrowUpFromLine className="w-5 h-5 text-red-500" />
+                    }
                   </div>
-                ))}
-              </div>
-            )
-          ) : (
-            (!withdrawals || withdrawals.length === 0) ? (
-              <div className="py-12 text-center">
-                <ArrowUpFromLine className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">{t('history.noWithdrawals')}</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {withdrawals.map((w: any) => (
-                  <div key={w.id} className="flex items-center justify-between px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-orange-50 rounded-full flex items-center justify-center">
-                        <ArrowUpFromLine className="w-4 h-4 text-orange-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{t('home.withdraw')}</p>
-                        <p className="text-[10px] text-gray-400">
-                          {w.createdAt ? new Date(w.createdAt).toLocaleDateString() : '-'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-orange-600">-${w.amount}</p>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusColor(w.status)}`}>
-                        {getStatusLabel(w.status)}
-                      </span>
-                    </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 capitalize">{tx.type}</p>
+                    <p className="text-[10px] text-gray-400">{formatDate(tx.date)}</p>
                   </div>
-                ))}
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-500'}`}>
+                    {tx.type === 'deposit' ? '+' : '-'}${tx.amount}
+                  </p>
+                  <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusColor(tx.status)}`}>
+                    {getStatusLabel(tx.status)}
+                  </span>
+                </div>
               </div>
-            )
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
