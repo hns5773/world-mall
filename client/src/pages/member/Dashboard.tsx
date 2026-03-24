@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { trpc } from '../../utils/trpc';
 import { useAuthStore } from '../../stores/authStore';
-import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, TrendingUp, Users } from 'lucide-react';
+import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, TrendingUp, Users, Globe } from 'lucide-react';
 
 // NotificationBell inline for the header
 function HeaderNotificationBell() {
@@ -117,13 +117,11 @@ export default function MemberDashboard() {
       {/* Purple Gradient Header with Logo Watermark */}
       <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8 relative overflow-hidden">
         {/* Logo watermark background */}
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{
-            backgroundImage: 'url(/logo.jpg)',
-            backgroundRepeat: 'repeat',
-            backgroundSize: '80px 80px',
-          }}
-        />
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex flex-wrap items-center justify-center gap-8 p-4">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Globe key={i} className="w-12 h-12 text-white" />
+          ))}
+        </div>
         {/* Background decoration circles */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -131,8 +129,8 @@ export default function MemberDashboard() {
         {/* Top row: Logo + Welcome + Bell + VIP */}
         <div className="flex items-center justify-between mb-6 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <img src="/logo.jpg" alt="World Mall" className="w-8 h-8 object-contain" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center shadow-md">
+              <Globe className="w-5 h-5 text-white" strokeWidth={1.5} />
             </div>
             <div>
               <p className="text-white/70 text-xs">{t('dashboard.welcome')}</p>

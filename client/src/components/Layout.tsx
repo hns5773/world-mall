@@ -289,8 +289,8 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
-                <Globe className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center shadow-md">
+                <Globe className="w-5 h-5 text-white" strokeWidth={1.5} />
               </div>
               <span className="text-lg font-bold text-gray-900">World Mall</span>
             </div>

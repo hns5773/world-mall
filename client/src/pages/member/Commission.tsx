@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { trpc } from '../../utils/trpc';
-import { TrendingUp, DollarSign } from 'lucide-react';
+import { TrendingUp, DollarSign, Globe } from 'lucide-react';
 
 export default function MemberCommission() {
   const { t } = useTranslation();
@@ -18,8 +18,15 @@ export default function MemberCommission() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8">
-        <h1 className="text-white text-xl font-bold mb-4">{t('commission.title')}</h1>
+      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8 relative overflow-hidden">
+        {/* Watermark */}
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex flex-wrap items-center justify-center gap-8 p-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Globe key={i} className="w-12 h-12 text-white" />
+          ))}
+        </div>
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <h1 className="text-white text-xl font-bold mb-4 relative z-10">{t('commission.title')}</h1>
         
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">

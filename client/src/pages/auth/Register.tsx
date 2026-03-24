@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trpc } from '../../utils/trpc';
 import { useAuthStore } from '../../stores/authStore';
-import { Globe, Eye, EyeOff, Check, ChevronDown, X } from 'lucide-react';
+import { Globe, Eye, EyeOff, Check, ChevronDown } from 'lucide-react';
 import { languages } from '../../i18n';
 import toast from 'react-hot-toast';
 
@@ -22,12 +22,9 @@ export default function Register() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [langSearch, setLangSearch] = useState('');
 
-  // Pre-fill invite code from URL params (?ref= or ?code=)
   useEffect(() => {
     const ref = searchParams.get('ref') || searchParams.get('code') || '';
-    if (ref) {
-      setInviteCode(ref);
-    }
+    if (ref) setInviteCode(ref);
   }, [searchParams]);
 
   const registerMutation = trpc.auth.register.useMutation({
@@ -51,10 +48,10 @@ export default function Register() {
       toast.error('Passwords do not match');
       return;
     }
-    registerMutation.mutate({ 
-      username, 
-      password, 
-      inviteCode, 
+    registerMutation.mutate({
+      username,
+      password,
+      inviteCode,
       phone: phone || undefined,
       language: i18n.language,
     });
@@ -67,20 +64,20 @@ export default function Register() {
   };
 
   const currentLang = languages.find(l => l.code === i18n.language) || languages[0];
-  const filteredLangs = langSearch 
+  const filteredLangs = langSearch
     ? languages.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()) || l.code.toLowerCase().includes(langSearch.toLowerCase()))
     : languages;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 flex items-center justify-center p-4 relative">
-      {/* Language Selector - Top Right */}
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 flex flex-col items-center justify-center p-4 relative">
+      {/* Language Selector - Top Right Pill */}
+      <div className="absolute top-4 right-4 z-50">
         <button
           onClick={() => setShowLangPicker(!showLangPicker)}
-          className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-white hover:bg-white/20 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-md rounded-full text-white hover:bg-white/25 transition-colors border border-white/20"
         >
           <Globe className="w-4 h-4" />
-          <span className="text-sm font-medium">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
+          <span className="text-sm font-medium">{currentLang.code.toLowerCase()} {currentLang.code.toUpperCase()}</span>
           <ChevronDown className="w-3 h-3" />
         </button>
 
@@ -120,17 +117,19 @@ export default function Register() {
       </div>
 
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-4">
-            <Globe className="w-8 h-8 text-white" />
+        {/* Globe Logo - Dark Rounded Square */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-800 rounded-2xl mb-4 shadow-lg">
+            <Globe className="w-8 h-8 text-white" strokeWidth={1.5} />
           </div>
           <h1 className="text-3xl font-bold text-white">World Mall</h1>
-          <p className="text-white/70 mt-1">{t('app.tagline')}</p>
+          <p className="text-white/60 mt-1 text-sm">Premium VIP Shopping Platform</p>
         </div>
 
+        {/* White Form Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-1">{t('auth.registerTitle')}</h2>
-          <p className="text-gray-500 mb-6">{t('auth.registerSubtitle')}</p>
+          <p className="text-gray-500 mb-6 text-sm">{t('auth.registerSubtitle')}</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username */}
@@ -140,7 +139,7 @@ export default function Register() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
                 required
               />
             </div>
@@ -152,7 +151,7 @@ export default function Register() {
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
               />
             </div>
 
@@ -164,13 +163,13 @@ export default function Register() {
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 pr-10"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 pr-10 text-sm"
                   required
                   minLength={6}
                 />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPw(!showPw)} 
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -185,7 +184,7 @@ export default function Register() {
                 type="password"
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
                 required
               />
             </div>
@@ -197,7 +196,7 @@ export default function Register() {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
                 placeholder="WM-XXXXXXXX"
                 required
               />
@@ -240,7 +239,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={registerMutation.isLoading || !agreeTerms}
-              className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all mt-6"
+              className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-sm"
             >
               {registerMutation.isLoading ? t('common.loading') : t('auth.register')}
             </button>

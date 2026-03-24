@@ -8,17 +8,19 @@ export default function AboutPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: 'url(/logo.jpg)', backgroundRepeat: 'repeat', backgroundSize: '80px 80px' }}
-        />
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex flex-wrap items-center justify-center gap-8 p-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Globe key={i} className="w-12 h-12 text-white" />
+          ))}
+        </div>
         <div className="relative z-10">
           <button onClick={() => navigate(-1)} className="text-white/80 hover:text-white mb-4 flex items-center gap-1">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm">Back</span>
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <img src="/logo.jpg" alt="World Mall" className="w-10 h-10 object-contain" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center shadow-md">
+              <Globe className="w-6 h-6 text-white" strokeWidth={1.5} />
             </div>
             <div>
               <h1 className="text-white text-xl font-bold">About World Mall</h1>
