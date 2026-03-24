@@ -1,0 +1,29 @@
+databases:
+  - name: worldmall-db
+    plan: free
+    databaseName: worldmall
+    user: worldmall
+
+services:
+  - type: web
+    name: world-mall
+    plan: free
+    runtime: node
+    buildCommand: |
+      npm install &&
+      cd server && npm install &&
+      cd ../client && npm install &&
+      cd .. && npm run build
+    startCommand: cd server && npm run db:migrate && npm run db:seed && npx tsx src/seed/reseed-images.ts && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: worldmall-db
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: "*"
+    healthCheckPath: /api/health
