@@ -4,6 +4,7 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
+import { generateCaptcha, verifyCaptcha } from '../utils/captcha';
 import { TRPCError } from '@trpc/server';
 
 export const authRouter = router({
@@ -91,6 +92,70 @@ export const authRouter = router({
         },
       };
     }),
+
+  // Admin login with CAPTCHA verification
+  adminLogin: publicProcedure
+    .input(z.object({
+      username: z.string(),
+      password: z.string(),
+      captchaId: z.string(),
+      captchaText: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      // Verify CAPTCHA first
+      const captchaValid = verifyCaptcha(input.captchaId, input.captchaText);
+      if (!captchaValid) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: '验证码错误或已过期' });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.username, input.username)).limit(1);
+
+      if (!user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: '用户名或密码错误' });
+      }
+
+      // Only allow owner and subadmin roles
+      if (user.role === 'member') {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: '无权限访问管理后台' });
+      }
+
+      if (!user.isActive) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: '账号已被禁用' });
+      }
+
+      const valid = await comparePassword(input.password, user.password);
+      if (!valid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: '用户名或密码错误' });
+      }
+
+      const token = generateToken({
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+      });
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          vipLevel: user.vipLevel,
+          balance: user.balance,
+          language: user.language,
+        },
+      };
+    }),
+
+  // Get CAPTCHA image
+  getCaptcha: publicProcedure.query(() => {
+    return generateCaptcha();
+  }),
+
+  // Refresh CAPTCHA
+  refreshCaptcha: publicProcedure.mutation(() => {
+    return generateCaptcha();
+  }),
 
   me: protectedProcedure.query(async ({ ctx }) => {
     const [user] = await db.select().from(users).where(eq(users.id, ctx.user.userId)).limit(1);

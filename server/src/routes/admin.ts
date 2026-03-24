@@ -3,7 +3,7 @@ import { router, adminProcedure, ownerProcedure } from '../trpc';
 import { db } from '../db';
 import {
   users, deposits, withdrawals, vipOrders, vipLevels,
-  globalSettings, activityLogs, orderCompletions
+  globalSettings, activityLogs, orderCompletions, notifications
 } from '../db/schema';
 import { eq, and, desc, sql, count, sum } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
@@ -213,6 +213,31 @@ export const adminRouter = router({
             balance: newBalance.toFixed(2),
             updatedAt: new Date(),
           }).where(eq(users.id, deposit.userId));
+
+          // Create member notification
+          await db.insert(notifications).values({
+            adminId: ctx.user.userId,
+            type: 'new_deposit',
+            title: '存款已批准',
+            message: `您的 $${deposit.amount} ${deposit.currency} 存款已批准`,
+            relatedUserId: deposit.userId,
+            relatedEntityId: deposit.id,
+            actionUrl: '/deposit',
+          });
+        }
+      } else {
+        // Rejected
+        const [user] = await db.select().from(users).where(eq(users.id, deposit.userId)).limit(1);
+        if (user) {
+          await db.insert(notifications).values({
+            adminId: ctx.user.userId,
+            type: 'new_deposit',
+            title: '存款已拒绝',
+            message: `您的 $${deposit.amount} ${deposit.currency} 存款已被拒绝`,
+            relatedUserId: deposit.userId,
+            relatedEntityId: deposit.id,
+            actionUrl: '/deposit',
+          });
         }
       }
 
@@ -303,6 +328,33 @@ export const adminRouter = router({
             frozenBalance: Math.max(0, newFrozen).toFixed(2),
             updatedAt: new Date(),
           }).where(eq(users.id, withdrawal.userId));
+
+          // Create member notification
+          await db.insert(notifications).values({
+            adminId: ctx.user.userId,
+            type: 'new_withdrawal',
+            title: '提款已批准',
+            message: `您的 $${withdrawal.amount} ${withdrawal.currency} 提款已批准`,
+            relatedUserId: withdrawal.userId,
+            relatedEntityId: withdrawal.id,
+            actionUrl: '/withdraw',
+          });
+        }
+      }
+
+      // If rejected, create notification
+      if (input.status === 'rejected') {
+        const [user] = await db.select().from(users).where(eq(users.id, withdrawal.userId)).limit(1);
+        if (user) {
+          await db.insert(notifications).values({
+            adminId: ctx.user.userId,
+            type: 'new_withdrawal',
+            title: '提款已拒绝',
+            message: `您的 $${withdrawal.amount} ${withdrawal.currency} 提款已被拒绝`,
+            relatedUserId: withdrawal.userId,
+            relatedEntityId: withdrawal.id,
+            actionUrl: '/withdraw',
+          });
         }
       }
 
@@ -563,7 +615,48 @@ export const adminRouter = router({
 
       return { success: true };
     }),
+
+  // Get notifications for admin
+  getNotifications: adminProcedure
+    .input(z.object({ limit: z.number().default(20) }).optional())
+    .query(async ({ ctx, input }) => {
+      const lim = input?.limit || 20;
+      return db.select().from(notifications)
+        .where(eq(notifications.adminId, ctx.user.userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(lim);
+    }),
+
+  // Get unread notification count
+  getUnreadNotificationCount: adminProcedure.query(async ({ ctx }) => {
+    const result = await db.select({ count: count() }).from(notifications)
+      .where(and(
+        eq(notifications.adminId, ctx.user.userId),
+        eq(notifications.isRead, false),
+      ));
+    return { count: result[0]?.count || 0 };
+  }),
+
+  // Mark notification as read
+  markNotificationAsRead: adminProcedure
+    .input(z.object({ notificationId: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(notifications).set({ isRead: true })
+        .where(eq(notifications.id, input.notificationId));
+      return { success: true };
+    }),
+
+  // Mark all notifications as read
+  markAllNotificationsAsRead: adminProcedure.mutation(async ({ ctx }) => {
+    await db.update(notifications).set({ isRead: true })
+      .where(and(
+        eq(notifications.adminId, ctx.user.userId),
+        eq(notifications.isRead, false),
+      ));
+    return { success: true };
+  }),
 });
 
-// Need to import asc
-import { asc } from 'drizzle-orm';
+// Need to import asc and count
+import { asc, count } from 'drizzle-orm';
+import { z } from 'zod';

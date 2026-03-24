@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
 import { db } from '../db';
-import { chatMessages, users } from '../db/schema';
+import { chatMessages, users, notifications } from '../db/schema';
 import { eq, and, or, desc, asc, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
@@ -21,6 +21,31 @@ export const chatRouter = router({
         message: input.message,
         direction: direction as any,
       }).returning();
+
+      // Create notification
+      if (ctx.user.role === 'member') {
+        // Member sends message to admin - admin notification
+        const [sender] = await db.select().from(users).where(eq(users.id, ctx.user.userId)).limit(1);
+        await db.insert(notifications).values({
+          adminId: input.receiverId,
+          type: 'new_message',
+          title: '新消息',
+          message: `来自 ${sender?.username || 'Member'} 的新消息`,
+          relatedUserId: ctx.user.userId,
+          actionUrl: '/admin/chat',
+        });
+      } else {
+        // Admin/SubAdmin sends message to member - member notification
+        const [admin] = await db.select().from(users).where(eq(users.id, ctx.user.userId)).limit(1);
+        await db.insert(notifications).values({
+          adminId: ctx.user.userId,
+          type: 'new_message',
+          title: '新回复',
+          message: `${admin?.username || 'Admin'} 回复了您的消息`,
+          relatedUserId: input.receiverId,
+          actionUrl: '/chat',
+        });
+      }
 
       return msg;
     }),

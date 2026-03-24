@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../db';
-import { users, vipOrders, orderCompletions, deposits, withdrawals, globalSettings } from '../db/schema';
+import { users, vipOrders, orderCompletions, deposits, withdrawals, globalSettings, notifications } from '../db/schema';
 import { eq, and, asc, desc } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
@@ -103,12 +103,41 @@ export const memberRouter = router({
       txHash: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.userId)).limit(1);
       const [deposit] = await db.insert(deposits).values({
         userId: ctx.user.userId,
         amount: input.amount,
         currency: input.currency,
         txHash: input.txHash,
       }).returning();
+
+      // Create notification for sub-admin/owner
+      if (user?.subAdminId) {
+        await db.insert(notifications).values({
+          adminId: user.subAdminId,
+          type: 'new_deposit',
+          title: '新存款申请',
+          message: `${user.username} 提交了 $${input.amount} ${input.currency} 的存款申请`,
+          relatedUserId: ctx.user.userId,
+          relatedEntityId: deposit.id,
+          actionUrl: '/admin/deposits',
+        });
+      } else {
+        // Notify owner if no sub-admin
+        const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.role, 'owner')).limit(1);
+        if (owner) {
+          await db.insert(notifications).values({
+            adminId: owner.id,
+            type: 'new_deposit',
+            title: '新存款申请',
+            message: `${user.username} 提交了 $${input.amount} ${input.currency} 的存款申请`,
+            relatedUserId: ctx.user.userId,
+            relatedEntityId: deposit.id,
+            actionUrl: '/admin/deposits',
+          });
+        }
+      }
+
       return deposit;
     }),
 
@@ -148,10 +177,37 @@ export const memberRouter = router({
 
       const [withdrawal] = await db.insert(withdrawals).values({
         userId: ctx.user.userId,
-        amount: input.amount,
+        amount: input.amount.toString(),
         currency: input.currency,
         walletAddress: input.walletAddress,
       }).returning();
+
+      // Create notification for sub-admin/owner
+      if (user.subAdminId) {
+        await db.insert(notifications).values({
+          adminId: user.subAdminId,
+          type: 'new_withdrawal',
+          title: '新提款申请',
+          message: `${user.username} 提交了 $${input.amount} ${input.currency} 的提款申请`,
+          relatedUserId: ctx.user.userId,
+          relatedEntityId: withdrawal.id,
+          actionUrl: '/admin/withdrawals',
+        });
+      } else {
+        // Notify owner if no sub-admin
+        const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.role, 'owner')).limit(1);
+        if (owner) {
+          await db.insert(notifications).values({
+            adminId: owner.id,
+            type: 'new_withdrawal',
+            title: '新提款申请',
+            message: `${user.username} 提交了 $${input.amount} ${input.currency} 的提款申请`,
+            relatedUserId: ctx.user.userId,
+            relatedEntityId: withdrawal.id,
+            actionUrl: '/admin/withdrawals',
+          });
+        }
+      }
 
       return withdrawal;
     }),
@@ -219,5 +275,45 @@ export const memberRouter = router({
         .reduce((sum, c) => sum + parseFloat(c.commissionEarned), 0)
         .toFixed(2),
     };
+  }),
+
+  // Get member notifications
+  getNotifications: protectedProcedure
+    .input(z.object({ limit: z.number().default(20) }).optional())
+    .query(async ({ ctx, input }) => {
+      const lim = input?.limit || 20;
+      return db.select().from(notifications)
+        .where(eq(notifications.relatedUserId, ctx.user.userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(lim);
+    }),
+
+  // Get unread notification count for member
+  getUnreadNotificationCount: protectedProcedure.query(async ({ ctx }) => {
+    const result = await db.select().from(notifications)
+      .where(and(
+        eq(notifications.relatedUserId, ctx.user.userId),
+        eq(notifications.isRead, false),
+      ));
+    return { count: result.length };
+  }),
+
+  // Mark member notification as read
+  markNotificationAsRead: protectedProcedure
+    .input(z.object({ notificationId: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(notifications).set({ isRead: true })
+        .where(eq(notifications.id, input.notificationId));
+      return { success: true };
+    }),
+
+  // Mark all member notifications as read
+  markAllNotificationsAsRead: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.update(notifications).set({ isRead: true })
+      .where(and(
+        eq(notifications.relatedUserId, ctx.user.userId),
+        eq(notifications.isRead, false),
+      ));
+    return { success: true };
   }),
 });

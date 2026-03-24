@@ -15,6 +15,7 @@ export const userRoleEnum = pgEnum('user_role', ['owner', 'subadmin', 'member'])
 export const depositStatusEnum = pgEnum('deposit_status', ['pending', 'approved', 'rejected']);
 export const withdrawalStatusEnum = pgEnum('withdrawal_status', ['pending', 'approved', 'rejected']);
 export const messageDirectionEnum = pgEnum('message_direction', ['member_to_admin', 'admin_to_member']);
+export const notificationTypeEnum = pgEnum('notification_type', ['new_deposit', 'new_withdrawal', 'new_member', 'new_message']);
 
 // Users table
 export const users = pgTable('users', {
@@ -135,6 +136,20 @@ export const activityLogs = pgTable('activity_logs', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  adminId: integer('admin_id').notNull(),
+  type: notificationTypeEnum('type').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  relatedUserId: integer('related_user_id'),
+  relatedEntityId: integer('related_entity_id'),
+  isRead: boolean('is_read').notNull().default(false),
+  actionUrl: varchar('action_url', { length: 500 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -146,3 +161,4 @@ export type Withdrawal = typeof withdrawals.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type GlobalSetting = typeof globalSettings.$inferSelect;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
