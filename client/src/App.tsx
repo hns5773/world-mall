@@ -40,16 +40,21 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   return <Layout>{children}</Layout>;
 }
 
-// PublicRoute: allows access even if admin is logged in when visiting /register or /login
-function PublicRoute({ children }: { children: React.ReactNode }) {
+// PublicRoute: allows access even if logged in when visiting /register, /login, or /admin/login
+function PublicRoute({ children, isAdminLogin }: { children: React.ReactNode; isAdminLogin?: boolean }) {
   const { isAuthenticated, user } = useAuthStore();
   const [searchParams] = useSearchParams();
 
   if (isAuthenticated && user) {
+    // If this is /admin/login, always allow access (admin can re-login)
+    if (isAdminLogin) {
+      return <>{children}</>;
+    }
+    // For member login/register, redirect authenticated members to dashboard
     if (user.role === 'member') {
       return <Navigate to="/dashboard" replace />;
     }
-    // For admin/subadmin, always show the public page (register/login)
+    // For admin/subadmin on /login or /register, allow access
   }
 
   return <>{children}</>;
@@ -62,7 +67,7 @@ export default function App() {
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/admin/login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
+        <Route path="/admin/login" element={<PublicRoute isAdminLogin={true}><AdminLogin /></PublicRoute>} />
 
         {/* Member routes */}
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['member']}><MemberDashboard /></ProtectedRoute>} />
