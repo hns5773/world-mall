@@ -15,6 +15,7 @@ import MemberChat from './pages/member/Chat';
 import MemberSettings from './pages/member/Settings';
 import MemberCommission from './pages/member/Commission';
 import MemberHistory from './pages/member/History';
+import MemberAbout from './pages/member/About';
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/settings" element={<ProtectedRoute allowedRoles={['member']}><MemberSettings /></ProtectedRoute>} />
         <Route path="/commission" element={<ProtectedRoute allowedRoles={['member']}><MemberCommission /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute allowedRoles={['member']}><MemberHistory /></ProtectedRoute>} />
+        <Route path="/about" element={<ProtectedRoute allowedRoles={['member']}><MemberAbout /></ProtectedRoute>} />
 
         {/* Admin routes */}
         <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['owner', 'subadmin']}><AdminDashboard /></ProtectedRoute>} />

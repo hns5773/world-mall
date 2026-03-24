@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { trpc } from '../../utils/trpc';
 import { useAuthStore } from '../../stores/authStore';
-import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, ChevronRight } from 'lucide-react';
+import { Bell, Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ShoppingCart, MessageCircle, TrendingUp, Users } from 'lucide-react';
 
 // NotificationBell inline for the header
 function HeaderNotificationBell() {
@@ -22,7 +22,7 @@ function HeaderNotificationBell() {
       <button onClick={() => setOpen(!open)} className="relative p-1 text-white/90 hover:text-white">
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5">
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -54,19 +54,46 @@ function HeaderNotificationBell() {
   );
 }
 
+// Generate fake recently active data for social proof
+function generateRecentlyActive() {
+  const actions = ['deposit', 'withdraw'] as const;
+  const names = ['User', 'Member', 'VIP', 'Trader', 'Client', 'Player', 'Buyer'];
+  const items: { user: string; type: 'deposit' | 'withdraw'; amount: string; timeAgo: string }[] = [];
+  for (let i = 0; i < 10; i++) {
+    const name = names[Math.floor(Math.random() * names.length)];
+    const num = Math.floor(Math.random() * 900) + 100;
+    const masked = `${name}***${num}`;
+    const type = actions[Math.floor(Math.random() * 2)];
+    const amount = (Math.floor(Math.random() * 5000) + 100).toFixed(0);
+    const mins = Math.floor(Math.random() * 120) + 1;
+    const timeAgo = mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
+    items.push({ user: masked, type, amount, timeAgo });
+  }
+  return items;
+}
+
 export default function MemberDashboard() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const { data, isLoading } = trpc.member.getDashboard.useQuery();
-  const { data: orders } = trpc.member.getOrders.useQuery();
-  const { data: deposits } = trpc.member.getDeposits.useQuery();
-  const { data: withdrawals } = trpc.member.getWithdrawals.useQuery();
+  const { data, isLoading } = trpc.member.getDashboard.useQuery(undefined, { refetchInterval: 30000 });
+  const { data: ordersData } = trpc.member.getOrders.useQuery(undefined, { refetchInterval: 30000 });
+  const { data: deposits } = trpc.member.getDeposits.useQuery(undefined, { refetchInterval: 30000 });
+  const { data: withdrawals } = trpc.member.getWithdrawals.useQuery(undefined, { refetchInterval: 30000 });
   const [showBalance, setShowBalance] = useState(true);
+  const [recentlyActive, setRecentlyActive] = useState(generateRecentlyActive());
+
+  // Refresh recently active every 15 seconds for live feel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRecentlyActive(generateRecentlyActive());
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
       </div>
     );
@@ -74,6 +101,15 @@ export default function MemberDashboard() {
 
   const balance = data?.balance || '0.00';
   const vipLevel = data?.vipLevel || 1;
+  const currentOrderIndex = data?.currentOrderIndex || 0;
+  const totalOrders = data?.totalOrders || 0;
+  const completedOrders = data?.completedOrders || 0;
+
+  // VIP progress calculation
+  const vipRequirements: Record<number, number> = { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80 };
+  const nextVipLevel = vipLevel < 8 ? vipLevel + 1 : 8;
+  const ordersNeeded = vipRequirements[vipLevel] || 10;
+  const progressPercent = Math.min((completedOrders / ordersNeeded) * 100, 100);
 
   // Combine deposits and withdrawals for activity feed
   const activities: any[] = [];
@@ -101,21 +137,29 @@ export default function MemberDashboard() {
   };
 
   // Get product images from orders for Products section
-  const productList = orders?.orders?.slice(0, 8) || [];
+  const productList = ordersData?.orders?.slice(0, 8) || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Purple Gradient Header */}
+      {/* Purple Gradient Header with Logo Watermark */}
       <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 px-5 pt-12 pb-8 relative overflow-hidden">
-        {/* Background decoration */}
+        {/* Logo watermark background */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage: 'url(/logo.jpg)',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '80px 80px',
+          }}
+        />
+        {/* Background decoration circles */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
         
-        {/* Top row: Welcome + Bell + VIP */}
+        {/* Top row: Logo + Welcome + Bell + VIP */}
         <div className="flex items-center justify-between mb-6 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <ShoppingCart className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center backdrop-blur-sm">
+              <img src="/logo.jpg" alt="World Mall" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <p className="text-white/70 text-xs">{t('dashboard.welcome')}</p>
@@ -176,24 +220,49 @@ export default function MemberDashboard() {
         </div>
       </div>
 
+      {/* VIP Progress Section */}
+      <div className="px-4 mt-5">
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-bold text-gray-900">VIP Progress</h3>
+            </div>
+            <span className="text-xs text-gray-500">
+              VIP {vipLevel} → VIP {nextVipLevel}
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-3 mb-2 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500">{completedOrders}/{ordersNeeded} orders completed</span>
+            <span className="text-purple-600 font-medium">{progressPercent.toFixed(0)}%</span>
+          </div>
+        </div>
+      </div>
+
       {/* Products Section */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-gray-800 rounded-full" />
             <h2 className="text-base font-bold text-gray-900">Products</h2>
           </div>
-          <button onClick={() => navigate('/orders')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+          <button onClick={() => navigate('/orders')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full">
             LIVE
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
           </button>
         </div>
         
         {/* Horizontal scroll product cards */}
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {productList.length > 0 ? productList.map((order: any, idx: number) => (
-            <div key={idx} className="flex-shrink-0 w-32">
-              <div className="relative rounded-xl overflow-hidden aspect-square bg-gray-100">
+            <div key={idx} className="flex-shrink-0 w-32 cursor-pointer" onClick={() => navigate('/orders')}>
+              <div className="relative rounded-xl overflow-hidden aspect-square bg-gray-100 shadow-sm">
                 <img 
                   src={order.productImage} 
                   alt={order.productName}
@@ -213,13 +282,13 @@ export default function MemberDashboard() {
       </div>
 
       {/* Deposit and Withdraw Activity Feed */}
-      <div className="px-4 mt-6 mb-6">
+      <div className="px-4 mt-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-gray-800 rounded-full" />
             <h2 className="text-base font-bold text-gray-900">{t('home.depositAndWithdraw')}</h2>
           </div>
-          <button onClick={() => navigate('/history')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+          <button onClick={() => navigate('/history')} className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full">
             LIVE
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
           </button>
@@ -227,7 +296,7 @@ export default function MemberDashboard() {
 
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {activities.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400">No recent activity</div>
+            <div className="py-6 text-center text-sm text-gray-400">No recent activity</div>
           ) : (
             activities.slice(0, 5).map((act, idx) => (
               <div key={idx} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
@@ -254,6 +323,46 @@ export default function MemberDashboard() {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* Recently Active Section */}
+      <div className="px-4 mt-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-gray-800 rounded-full" />
+            <h2 className="text-base font-bold text-gray-900">Recently Active</h2>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-full">
+            <Users className="w-3 h-3" />
+            LIVE
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {recentlyActive.slice(0, 6).map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 last:border-0">
+              <div className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${item.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'}`}>
+                  {item.type === 'deposit' 
+                    ? <ArrowDownToLine className="w-3.5 h-3.5 text-green-500" />
+                    : <ArrowUpFromLine className="w-3.5 h-3.5 text-red-500" />
+                  }
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-700">{item.user}</p>
+                  <p className="text-[10px] text-gray-400 capitalize">{item.type === 'deposit' ? 'Deposit' : 'Withdraw'}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className={`text-xs font-bold ${item.type === 'deposit' ? 'text-green-600' : 'text-red-500'}`}>
+                  {item.type === 'deposit' ? '+' : '-'}${item.amount}
+                </p>
+                <p className="text-[10px] text-gray-400">{item.timeAgo}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

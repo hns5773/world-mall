@@ -183,6 +183,7 @@ export const authRouter = router({
 
   updateProfile: protectedProcedure
     .input(z.object({
+      username: z.string().min(3).optional(),
       phone: z.string().optional(),
       email: z.string().email().optional(),
       language: z.string().optional(),
