@@ -13,6 +13,8 @@ import MemberDeposit from './pages/member/Deposit';
 import MemberWithdraw from './pages/member/Withdraw';
 import MemberChat from './pages/member/Chat';
 import MemberSettings from './pages/member/Settings';
+import MemberCommission from './pages/member/Commission';
+import MemberHistory from './pages/member/History';
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -37,22 +39,15 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 }
 
 // PublicRoute: allows access even if admin is logged in when visiting /register or /login
-// This ensures that when admin copies register/login links, they work correctly
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuthStore();
   const [searchParams] = useSearchParams();
-  const hasRefParam = searchParams.has('ref') || searchParams.has('code');
 
-  // If user is authenticated as admin/subadmin but visiting member auth pages,
-  // always show the page (don't redirect to admin dashboard)
-  // This allows admins to test/share register and login links
   if (isAuthenticated && user) {
-    // Only redirect members to their dashboard
     if (user.role === 'member') {
       return <Navigate to="/dashboard" replace />;
     }
     // For admin/subadmin, always show the public page (register/login)
-    // so they can test links and share them
   }
 
   return <>{children}</>;
@@ -62,11 +57,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes - always accessible */}
+        {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-
-        {/* Admin login - separate route */}
         <Route path="/admin/login" element={<PublicRoute><Login isAdmin /></PublicRoute>} />
 
         {/* Member routes */}
@@ -76,6 +69,8 @@ export default function App() {
         <Route path="/withdraw" element={<ProtectedRoute allowedRoles={['member']}><MemberWithdraw /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute allowedRoles={['member']}><MemberChat /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute allowedRoles={['member']}><MemberSettings /></ProtectedRoute>} />
+        <Route path="/commission" element={<ProtectedRoute allowedRoles={['member']}><MemberCommission /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute allowedRoles={['member']}><MemberHistory /></ProtectedRoute>} />
 
         {/* Admin routes */}
         <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['owner', 'subadmin']}><AdminDashboard /></ProtectedRoute>} />
