@@ -5,7 +5,7 @@ import {
   users, deposits, withdrawals, vipOrders, vipLevels,
   globalSettings, activityLogs, orderCompletions, notifications
 } from '../db/schema';
-import { eq, and, desc, sql, count, sum } from 'drizzle-orm';
+import { eq, and, desc, sql, count, sum, asc } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { hashPassword, generateInviteCode } from '../utils/auth';
 
@@ -656,7 +656,3 @@ export const adminRouter = router({
     return { success: true };
   }),
 });
-
-// Need to import asc and count
-import { asc, count } from 'drizzle-orm';
-import { z } from 'zod';
